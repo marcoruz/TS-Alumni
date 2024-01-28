@@ -14,10 +14,24 @@ function LoginGoogle() {
     }
   }, []);
 
+  useEffect(() => {
+    const storedData = JSON.parse(localStorage.getItem('dataKey'));
+    if (storedData) {
+      setUserData(storedData);
+      navigate(storedData.isNewUser ? "/newacc" : "/newsfeed");
+    }
+  }, []);
+
   const fetchGoogleUserData = async (accessToken) => {
     try {
       const response = await fetch(
         "https://www.googleapis.com/oauth2/v3/userinfo",
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -66,7 +80,12 @@ function LoginGoogle() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(responseFetch)
+          body: JSON.stringify({
+            accessToken: responseFetch.accessToken,
+            email: responseFetch.email,
+            username: responseFetch.username,
+            realName: responseFetch.realName,
+          }),
         }
       );
   
@@ -86,6 +105,7 @@ function LoginGoogle() {
         var data = JSON.parse(responseData.user);
         var userID = data[0][0].UserID;
         console.log("userID ", userID)
+        console.log("userID ", userID)
         localStorage.setItem("UserID", userID);
       }
   
@@ -93,8 +113,7 @@ function LoginGoogle() {
   
       if (responseData.isNewUser === false) {
         navigate("/newsfeed");
-      }
-      else {
+      } else {
         navigate("/newacc");
       }
   
