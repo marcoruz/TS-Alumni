@@ -7,18 +7,19 @@ function LoginGoogle() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const storedData = JSON.parse(localStorage.getItem('dataKey'));
+    const storedData = localStorage.getItem('dataKey');
     if (storedData) {
-      setUserData(storedData);
-      navigate(storedData.isNewUser ? "/newacc" : "/newsfeed");
-    }
-  }, []);
-
-  useEffect(() => {
-    const storedData = JSON.parse(localStorage.getItem('dataKey'));
-    if (storedData) {
-      setUserData(storedData);
-      navigate(storedData.isNewUser ? "/newacc" : "/newsfeed");
+      try {
+        const parsedData = JSON.parse(storedData);
+        setUserData(parsedData);
+        navigate(parsedData.isNewUser ? "/newacc" : "/newsfeed");
+      } catch (error) {
+        console.error("Fehler beim Parsen der Benutzerdaten aus dem Local Storage:", error);
+        // Optionale Weiterleitung zum Login oder Anzeige einer Fehlermeldung
+      }
+    } else {
+      console.log("Keine Benutzerdaten im Local Storage gefunden.");
+      // Optionale Weiterleitung zum Login oder Anzeige einer Meldung
     }
   }, []);
 
@@ -26,12 +27,6 @@ function LoginGoogle() {
     try {
       const response = await fetch(
         "https://www.googleapis.com/oauth2/v3/userinfo",
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-        }
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -49,13 +44,15 @@ function LoginGoogle() {
       };
   
       console.log("Extracted Data:", extractedData);
+      localStorage.setItem('userDataKey', JSON.stringify(extractedData));
+      console.log("Benutzerdaten im Local Storage gespeichert:", localStorage.getItem('userDataKey'));
+  
       return extractedData;
     } catch (error) {
       console.error("Error fetching Google user data.", error);
       return null;
     }
   };
-  
 
   const sendDataToBackend = async (googleData, accessToken) => {
     setIsLoading(true);
@@ -65,60 +62,34 @@ function LoginGoogle() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ accessToken: accessToken })
       });
-  
-      const responseFetch = await response.json();
+
+      if (!response.ok) {
+        throw new Error(`Serverantwort war nicht OK. Status: ${response.status}`);
+      }
+
+      const responseText = await response.text();
+
+      if (!responseText) {
+        throw new Error('Leere Antwort vom Server erhalten');
+      }
+
+      let responseFetch;
+      try {
+        responseFetch = JSON.parse(responseText);
+      } catch (error) {
+        throw new Error('Antwort ist kein gültiges JSON: ' + error.message);
+      }
+
       console.log("responseData from googlefetch", responseFetch);
-      localStorage.setItem('userDataKey', JSON.stringify(googleData));
-  
-      // Store email, username, and real name in local storage
-      localStorage.setItem('email', googleData.email);
-      localStorage.setItem('username', googleData.username);
-      localStorage.setItem('realName', googleData.realName);
-  
-      const responseToBackend = await fetch(
-        "https://845d97vw4k.execute-api.eu-central-1.amazonaws.com/login/google",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            accessToken: responseFetch.accessToken,
-            email: responseFetch.email,
-            username: responseFetch.username,
-            realName: responseFetch.realName,
-          }),
-        }
-      );
-  
-      const responseData = await responseToBackend.json();
-      console.log("data From backend login google", responseData)
-  
-      setUserData(responseData);
-      var sessionData = responseData.sessionData;
-      localStorage.setItem("Session", sessionData);
-  
-      if (responseData.isNewUser === false) {
-        var existingUserMessage = JSON.parse(responseData.steps.existingUserMessage);
-        var userID = existingUserMessage[0].UserID;
-        localStorage.setItem("UserID", userID);
+      if (!responseFetch || !responseFetch.accessToken) {
+        throw new Error('Keine gültigen Daten in der Antwort vom Server');
       }
-      else {
-        var data = JSON.parse(responseData.user);
-        var userID = data[0][0].UserID;
-        console.log("userID ", userID)
-        console.log("userID ", userID)
-        localStorage.setItem("UserID", userID);
-      }
-  
-      localStorage.setItem('dataKey', JSON.stringify(responseData)); // Daten speichern
-  
-      if (responseData.isNewUser === false) {
-        navigate("/newsfeed");
-      } else {
-        navigate("/newacc");
-      }
-  
+
+      // Weiterer Code zur Verarbeitung von responseFetch
+      // ...
+
     } catch (error) {
-      console.error("Fehler beim Senden der Daten an das Backend.", error);
+      console.error("Fehler beim Senden der Daten an das Backend oder beim Parsen der Antwort:", error);
     } finally {
       setIsLoading(false);
     }

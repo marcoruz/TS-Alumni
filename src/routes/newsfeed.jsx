@@ -19,6 +19,7 @@ const NewsFeed = () => {
   const [email, setEmail] = useState(null);
   const [userName, setUserName] = useState(null);
   const [realName, setRealName] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -85,6 +86,33 @@ const NewsFeed = () => {
     }
   }, []);
 
+  useEffect(() => {
+    // Benutzerdaten aus dem Local Storage laden, falls verfügbar
+    const storedData = localStorage.getItem('userDataKey');
+    console.log("Abruf aus Local Storage:", storedData);
+    if (storedData) {
+      const parsedData = JSON.parse(storedData);
+      setUserData(parsedData);
+    } else {
+      console.log("Keine Benutzerdaten im Local Storage gefunden.");
+    }
+  }, []);
+
+  useEffect(() => {
+    // Stellen Sie sicher, dass Sie hier den gleichen Schlüssel verwenden, den Sie zum Speichern verwendet haben
+    const storedData = localStorage.getItem('userDataKey');
+    if (storedData) {
+      const parsedData = JSON.parse(storedData);
+      setUserData(parsedData);
+      console.log("Benutzerdaten aus dem Local Storage geladen:", parsedData);
+      navigate(parsedData.isNewUser ? "/newacc" : "/newsfeed");
+    } else {
+      console.log("Keine Benutzerdaten im Local Storage gefunden.");
+      // Optional: Weiterleitung zum Login
+      navigate('/login');
+    }
+  }, [navigate]);
+
   const getMessagesByUser = (userId) => {
     const userMessages = messages.filter(message => message.user_id === userId);
     return userMessages;
@@ -122,6 +150,15 @@ const NewsFeed = () => {
     reader.readAsDataURL(file);
   };
 
+  useEffect(() => {
+    // Laden Sie die Nachrichten des Benutzers, sobald der Benutzer verfügbar ist
+    if (user) {
+      const userMessages = getMessagesByUser(user.id);
+      // Hier können Sie dann mit den Benutzernachrichten arbeiten
+      // Zum Beispiel könnten Sie sie im State speichern
+    }
+  }, [user]); // Dieser useEffect wird ausgeführt, wenn sich 'user' ändert
+
   return (
     <div className="app">
       <img src="https://cdn.discordapp.com/attachments/1195301143161606205/1195301598507827240/techst_logo_rz_white.png?ex=65b37e5c&is=65a1095c&hm=951cba6cabd865ab2f4e7c4fd8e295c18bb4f3b9a3474d434849184a84fcbd48&" alt="Logo" className="logo" />
@@ -130,12 +167,14 @@ const NewsFeed = () => {
           <p>Lädt Nachrichten...</p>
         ) : (
           <div className="newsfeed">
-            {user && (
+            {user ? (
               <div className="user-info">
                 <h1>Hallo, {realName}</h1>
                 <p>Email: {email}</p>
                 <img src={user.photo} alt={realName} />
               </div>
+            ) : (
+              <p>Keine Benutzerdaten verfügbar.</p>
             )}
             <div className="messages">
               {user && getMessagesByUser(user.id).map(message => (
