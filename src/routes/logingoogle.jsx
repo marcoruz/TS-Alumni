@@ -18,11 +18,20 @@ function LoginGoogle() {
     try {
       const response = await fetch(
         "https://www.googleapis.com/oauth2/v3/userinfo",
-        { headers: { Authorization: `Bearer ${accessToken}` } }
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
       );
       const data = await response.json();
       console.log("Google Data:", data);
-      return data;
+      return {
+        email: data.email,
+        username: data.given_name,
+        realName: data.name,
+      };
     } catch (error) {
       console.error("Fehler beim Abrufen von Google-Benutzerdaten.", error);
       return null;
@@ -38,7 +47,12 @@ function LoginGoogle() {
         body: JSON.stringify({ accessToken: accessToken })
       });
 
-      const responseFetch = await response.json();
+      const responseFetch = {
+        accessToken: accessToken,
+        email: googleData.email,
+        username: googleData.username,
+        realName: googleData.realName,
+      };
       console.log("responseData from googlefetch", responseFetch);
 
       const responseToBackend = await fetch(
@@ -46,7 +60,12 @@ function LoginGoogle() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(responseFetch)
+          body: JSON.stringify({
+            accessToken: responseFetch.accessToken,
+            email: responseFetch.email,
+            username: responseFetch.username,
+            realName: responseFetch.realName,
+          }),
         }
       );
 
@@ -61,8 +80,7 @@ function LoginGoogle() {
         var existingUserMessage = JSON.parse(responseData.steps.existingUserMessage);
         var userID = existingUserMessage[0].UserID;
         localStorage.setItem("UserID", userID);
-      }
-      else {
+      } else {
         var data = JSON.parse(responseData.user);
         var userID = data[0][0].UserID;
         console.log("userID ", userID)
@@ -73,8 +91,7 @@ function LoginGoogle() {
 
       if (responseData.isNewUser === false) {
         navigate("/newsfeed");
-      }
-      else {
+      } else {
         navigate("/newacc");
       }
 

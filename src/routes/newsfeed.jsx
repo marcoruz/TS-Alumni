@@ -33,11 +33,14 @@ const NewsFeed = () => {
 
         if (data.status === 'ok') {
           setUserData(data);
-          setMessages(data.posts); // Speichere die empfangenen Nachrichten
+          setMessages(data.posts);
           setIsLoading(false);
-          // Benutzerdaten aus dem Local Storage laden, falls verfügbar
+
           const storedUser = JSON.parse(localStorage.getItem('userKey'));
-          if (storedUser) {
+          if (!storedUser) {
+            localStorage.setItem('userKey', JSON.stringify(data.userData));
+            setUser(data.userData);
+          } else {
             setUser(storedUser);
           }
         } else {
@@ -74,9 +77,10 @@ const NewsFeed = () => {
       const data = await response.json();
 
       console.log('Data:', data);
-      window.location.reload(true);
-     
 
+      setMessages([...messages, data.sentMessage]);
+      setNewMessage('');
+      setUploadedImage(null);
     } catch (error) {
       console.error('Fehler beim Netzwerkaufruf', error);
     }
