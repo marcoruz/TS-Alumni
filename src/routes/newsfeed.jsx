@@ -15,6 +15,7 @@ const NewsFeed = () => {
   const [uploadedImage, setUploadedImage] = useState(null);
   const [userData, setUserData] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -33,18 +34,28 @@ const NewsFeed = () => {
         if (data.status === 'ok') {
           setUserData(data);
           setMessages(data.posts); // Speichere die empfangenen Nachrichten
+          setIsLoading(false);
+          // Benutzerdaten aus dem Local Storage laden, falls verfügbar
+          const storedUser = JSON.parse(localStorage.getItem('userKey'));
+          if (storedUser) {
+            setUser(storedUser);
+          }
         } else {
           console.error('Fehler beim Abrufen der Nutzerdaten', data);
         }
       } catch (error) {
         console.error('Fehler beim Netzwerkaufruf', error);
-      } finally {
         setIsLoading(false);
       }
     };
 
     fetchUserData();
   }, []); 
+
+  const getMessagesByUser = (userId) => {
+    const userMessages = messages.filter(message => message.user_id === userId);
+    return userMessages;
+  };
 
   const handleSendMessage = async () => {
     try {
@@ -84,20 +95,26 @@ const NewsFeed = () => {
     <div className="app">
       <img src="https://cdn.discordapp.com/attachments/1195301143161606205/1195301598507827240/techst_logo_rz_white.png?ex=65b37e5c&is=65a1095c&hm=951cba6cabd865ab2f4e7c4fd8e295c18bb4f3b9a3474d434849184a84fcbd48&" alt="Logo" className="logo" />
       <div className="chat">
-        <div className="messages">
-          {isLoading ? (
-            <p>Lädt Nachrichten...</p>
-          ) : (
-            messages.slice(-1000).map((message, index) => (
-              <div className="message" key={index}>
-               
-                <p>{message.content}</p>
-                <img src={message.MediaLink} alt="Uploaded" width='600px'/>
-
+        {isLoading ? (
+          <p>Lädt Nachrichten...</p>
+        ) : (
+          <div className="newsfeed">
+            {user && (
+              <div className="user-info">
+                <h1>Hallo, {user.name}</h1>
+                <img src={user.photo} alt={user.name} />
               </div>
-            ))
-          )}
-        </div>
+            )}
+            <div className="messages">
+              {user && getMessagesByUser(user.id).map(message => (
+                <div className="message" key={message.id}>
+                  <p>{message.content}</p>
+                  <img src={message.media_link} alt="Uploaded" width='600px'/>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="input-container">
           <input
             type="text"

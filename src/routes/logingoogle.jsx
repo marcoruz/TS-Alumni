@@ -6,6 +6,14 @@ function LoginGoogle() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const storedData = JSON.parse(localStorage.getItem('dataKey'));
+    if (storedData) {
+      setUserData(storedData);
+      navigate(storedData.isNewUser ? "/newacc" : "/newsfeed");
+    }
+  }, []);
+
   const fetchGoogleUserData = async (accessToken) => {
     try {
       const response = await fetch(
@@ -49,28 +57,26 @@ function LoginGoogle() {
       var sessionData = responseData.sessionData;
       localStorage.setItem("Session", sessionData);
 
-
-
-
       if (responseData.isNewUser === false) {
         var existingUserMessage = JSON.parse(responseData.steps.existingUserMessage);
         var userID = existingUserMessage[0].UserID;
         localStorage.setItem("UserID", userID);
-
       }
       else {
         var data = JSON.parse(responseData.user);
         var userID = data[0][0].UserID;
-        console.log("userID ",userID)
+        console.log("userID ", userID)
         localStorage.setItem("UserID", userID);
       }
+
+      localStorage.setItem('dataKey', JSON.stringify(responseData)); // Daten speichern
 
       if (responseData.isNewUser === false) {
         navigate("/newsfeed");
       }
       else {
         navigate("/newacc");
-      } 
+      }
 
     } catch (error) {
       console.error("Fehler beim Senden der Daten an das Backend.", error);
